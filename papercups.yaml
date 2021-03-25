@@ -1,0 +1,53 @@
+namespace: /papercups
+
+common:
+  version: latest
+  metadata:
+    defines: metadata
+    name: Papercups
+    description: Open-source live customer chat.
+    tags: self hosted, messaging, communication
+    website: https://papercups.io/
+    source: https://github.com/papercups-io/papercups
+    publisher: "monk.io"
+    icon: https://storage.googleapis.com/template_logos/papercups-v2.svg
+
+  containers:
+    defines: containers
+    papercups:
+      image: papercups/papercups
+      image-tag: latest
+      ports:
+        - "80:80"
+        - "3000:3000"
+        - "4000:4000"
+      bash: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && echo 'running' && /entrypoint.sh run"
+      environment:
+        - <- `DATABASE_URL=ecto://postgres:password@${db-host}/postgres`
+        - SECRET_KEY_BASE=dvPPvOjpgX2Wk8Y3ONrqWsgM9ZtU4sSrs4l/5CFD1sLm4H+CjLU+EidjNGuSz7bz
+        - BASE_URL=localhost
+        - BACKEND_URL=localhost
+        - MIX_ENV=prod
+  variables:
+    defines: variables
+    db-host: <- get-hostname("papercups/postgres", "postgres")
+    
+papercups:
+  defines: runnable
+  inherits: ./common
+  depends:
+    defines: depends
+    wait-for:
+      runnables:
+        - /papercups/postgres
+      timeout: 60
+
+postgres:
+  defines: runnable
+  inherits: /postgres/12
+
+stack:
+  defines: process-group
+  runnable-list:
+    - /papercups/postgres
+    - /papercups/papercups
