@@ -1,53 +1,158 @@
-namespace: /papercups
+---
+namespace: papercups
 
-common:
-  version: latest
+papercups:
+  defines: runnable
+
   metadata:
-    defines: metadata
     name: Papercups
     description: Open-source live customer chat.
     tags: self hosted, messaging, communication
     website: https://papercups.io/
     source: https://github.com/papercups-io/papercups
-    publisher: "monk.io"
-    icon: https://storage.googleapis.com/template_logos/papercups-v2.svg
+    publisher: monk.io
+    icon: https://papercups.io/papercups-dark.svg
+    private: true
 
   containers:
-    defines: containers
     papercups:
       image: papercups/papercups
       image-tag: latest
-      ports:
-        - "80:80"
-        - "3000:3000"
-        - "4000:4000"
       bash: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && echo 'running' && /entrypoint.sh run"
       environment:
-        - <- `DATABASE_URL=ecto://postgres:password@${db-host}/postgres`
+        - REQUIRE_DB_SSL=false
+        - <- `DATABASE_URL=ecto://${db_username}:${postgres_password}@${db-host}:${db-port}/${db_name}`
         - SECRET_KEY_BASE=dvPPvOjpgX2Wk8Y3ONrqWsgM9ZtU4sSrs4l/5CFD1sLm4H+CjLU+EidjNGuSz7bz
         - BASE_URL=localhost
         - BACKEND_URL=localhost
         - MIX_ENV=prod
+        - REACT_APP_FILE_UPLOADS_ENABLED=1
+      labels:
+        - traefik.enable=true
+
+        - traefik.http.routers.web.entrypoints=web
+        - traefik.http.routers.web.rule=PathPrefix(`/`)
+        - <- $force-https then(`traefik.http.routers.web.middlewares=web-forcessl@docker`)
+
+        - traefik.http.routers.websecure.entrypoints=websecure
+        - traefik.http.routers.websecure.rule=PathPrefix(`/`)
+
+        - traefik.http.routers.websecure.tls=true
+        - traefik.http.routers.websecure.tls.certresolver=letsencrypt
+        - <- `traefik.http.routers.websecure.tls.domains[0].main=${hostname}`
+        - traefik.http.routers.websecure.service=websecure
+
+        - <- $force-https then(`traefik.http.middlewares.web-forcessl.redirectscheme.scheme=https`)
+        - <- $force-https then(`traefik.http.middlewares.web-forcessl.redirectscheme.permanent=true`)
+        - <- $force-https then(`traefik.http.middlewares.web-forcessl.redirectscheme.port=443`)
+
+        - traefik.http.services.websecure.loadbalancer.server.port=4000
+
+    traefik:
+      image: traefik
+      image-tag: v2.9.9
+      paths:
+        - "/var/run/podman/podman.sock:/var/run/docker.sock:z"
+        - <- `${monk-volume-path}/dokuwikiacme:/acmestore`
+      ports:
+        - 80:80
+        - 443:443
+      bash: |
+        traefik \
+          --entrypoints.web.address=:80 \
+          --entrypoints.websecure.address=:443 \
+          --entrypoints.websecure.http.tls=true \
+          --providers.docker=true \
+          --providers.docker.exposedByDefault=false \
+          --log.level=INFO \
+          --certificatesresolvers.letsencrypt.acme.email=unsupported@unfortunateemail.com \
+          --certificatesresolvers.letsencrypt.acme.storage=/acmestore/acme.json \
+          --certificatesresolvers.letsencrypt.acme.httpChallenge=true \
+          --certificatesresolvers.letsencrypt.acme.httpChallenge.entryPoint=web \
+          --accesslog=true \
+          --accesslog.format=json \
+          --log.format=json
+
   variables:
-    defines: variables
-    db-host: <- get-hostname("papercups/postgres", "postgres")
-    
-papercups:
-  defines: runnable
-  inherits: ./common
+    db-host:
+      value: <- connection-hostname("postgres")
+      type: string
+    db-port:
+      value: <- connection-port("postgres")
+      type: string
+    postgres_password:
+      value: <- `${database-password}`
+      type: string
+    db_username:
+      value: <- `${database-user}`
+      type: string
+    db_name:
+      value: <- `${database-name}`
+      type: string
+    force-https:
+      type: bool
+      value: true
+  connections:
+    postgres:
+      runnable: papercups/db
+      service: postgres
   depends:
-    defines: depends
     wait-for:
       runnables:
-        - /papercups/postgres
+        - papercups/db
       timeout: 60
 
-postgres:
+db:
   defines: runnable
-  inherits: /postgres/12
+  inherits: postgresql/base
+  metdata:
+    private: true
+  services:
+    postgres:
+      container: postgres
+      port: 5432
+      protocol: tcp
+  variables:
+    postgres_password:
+      value: <- `${database-password}`
+      type: string
+    db_username:
+      value: <- `${database-user}`
+      type: string
+    db_name:
+      value: <- `${database-name}`
+      type: string
+  checks:
+    readiness:
+      code: exec("postgres", "pg_isready") "accepting connections" contains?
+      period: 15
+      initialDelay: 10
 
 stack:
   defines: process-group
+
   runnable-list:
-    - /papercups/postgres
-    - /papercups/papercups
+    - papercups/db
+    - papercups/papercups
+
+  metadata:
+    name: Papercups
+    description: Open-source live customer chat.
+    tags: self hosted, messaging, communication
+    website: https://papercups.io/
+    source: https://github.com/papercups-io/papercups
+    publisher: monk.io
+    icon: https://papercups.io/papercups-dark.svg
+  variables:
+    database-user:
+      value: postgres
+      type: string
+    database-password:
+      value: postgres
+      type: string
+    database-name:
+      value: papercups
+      type: string
+    hostname:
+      type: string
+      value: <- ip-address-public
