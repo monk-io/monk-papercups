@@ -6,7 +6,35 @@ papercups:
 
   metadata:
     name: Papercups
-    description: Open-source live customer chat.
+    description: |
+      # Papercups
+
+      Papercups is a customer messaging platform designed for businesses to easily communicate with their customers. It offers real-time chat, customizable messaging, and integrations with popular tools like Slack and Zapier.  
+
+      ## Features
+
+      - Real-time messaging
+      - Customizable chat widget
+      - Automated messaging
+      - Integrations with Slack and Zapier
+      - Multi-language support
+      - Analytics and reporting
+
+      ## Benefits
+
+      - Improves customer satisfaction and engagement
+      - Streamlines customer support
+      - Increases sales conversions
+      - Saves time and resources
+
+      ## Pricing
+
+      Papercups offers a free plan for up to 1000 monthly active users. Paid plans start at $49/month and include additional features and support
+
+
+      ## Getting Started
+
+      To get started with Papercups, simply sign up for an account on their website and follow the setup instructions. Once set up, you can start communicating with your customers in real-time and improving your customer experience.
     tags: self hosted, messaging, communication
     website: https://papercups.io/
     source: https://github.com/papercups-io/papercups
