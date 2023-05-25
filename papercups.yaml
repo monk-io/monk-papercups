@@ -35,7 +35,7 @@ papercups:
       ## Getting Started
 
       To get started with Papercups, simply sign up for an account on their website and follow the setup instructions. Once set up, you can start communicating with your customers in real-time and improving your customer experience.
-    tags: self hosted, messaging, communication
+    tags: self hosted, communication, messaging
     website: https://papercups.io/
     source: https://github.com/papercups-io/papercups
     publisher: monk.io
@@ -166,7 +166,7 @@ stack:
   metadata:
     name: Papercups
     description: Open-source live customer chat.
-    tags: self hosted, messaging, communication
+    tags: self hosted, communication, messaging
     website: https://papercups.io/
     source: https://github.com/papercups-io/papercups
     publisher: monk.io
