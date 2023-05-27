@@ -6,7 +6,7 @@ This repository contains Monk.io template to deploy Papercups system either loca
 
 This template is available directly from Monkhub.io therefore if you want a quick deploy simply run below command after launching `monkd`:
 
-```
+```bash
 ➜  monk-papercups git:(main) ✗ monk login
 
 ➜  monk-papercups git:(main) ✗ monk run papercups/stack
@@ -32,7 +32,7 @@ This template is available directly from Monkhub.io therefore if you want a quic
 
 To deploy the above system to your cloud provider, create a new Monk cluster and provision your instances.
 
-```
+```bash
 ➜  monk-papercups git:(main) ✗ monk cluster new
 ? New cluster name papercups-deployment
 ✔ Cluster created
@@ -58,14 +58,14 @@ Your cluster has been created successfully.
 
 Once cluster is ready execute the same command as for local and select your cluster (the option will appear automatically).
 
-```
+```bash
 ➜  monk-papercups git:(main) ✗ monk run papercups/stack
 ? Select tag to run on: papercups
 ```
 
 ### Logs & Shell
 
-```
+```bash
 ➜  monk logs -l 1000 -f papercups/papercups
 
 ➜  monk shell papercups/papercups

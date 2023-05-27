@@ -3,16 +3,13 @@ namespace: papercups
 
 papercups:
   defines: runnable
-
   metadata:
     name: Papercups
     description: |
       # Papercups
-
-      Papercups is a customer messaging platform designed for businesses to easily communicate with their customers. It offers real-time chat, customizable messaging, and integrations with popular tools like Slack and Zapier.  
+      Papercups is a customer messaging platform designed for businesses to easily communicate with their customers. It offers real-time chat, customizable messaging, and integrations with popular tools like Slack and Zapier.
 
       ## Features
-
       - Real-time messaging
       - Customizable chat widget
       - Automated messaging
@@ -21,19 +18,15 @@ papercups:
       - Analytics and reporting
 
       ## Benefits
-
       - Improves customer satisfaction and engagement
       - Streamlines customer support
       - Increases sales conversions
       - Saves time and resources
 
       ## Pricing
-
       Papercups offers a free plan for up to 1000 monthly active users. Paid plans start at $49/month and include additional features and support
 
-
       ## Getting Started
-
       To get started with Papercups, simply sign up for an account on their website and follow the setup instructions. Once set up, you can start communicating with your customers in real-time and improving your customer experience.
     tags: self hosted, communication, messaging
     website: https://papercups.io/
@@ -41,7 +34,6 @@ papercups:
     publisher: monk.io
     icon: https://papercups.io/papercups-dark.svg
     private: true
-
   containers:
     papercups:
       image: papercups/papercups
@@ -57,30 +49,24 @@ papercups:
         - REACT_APP_FILE_UPLOADS_ENABLED=1
       labels:
         - traefik.enable=true
-
         - traefik.http.routers.web.entrypoints=web
         - traefik.http.routers.web.rule=PathPrefix(`/`)
         - <- $force-https then(`traefik.http.routers.web.middlewares=web-forcessl@docker`)
-
         - traefik.http.routers.websecure.entrypoints=websecure
         - traefik.http.routers.websecure.rule=PathPrefix(`/`)
-
         - traefik.http.routers.websecure.tls=true
         - traefik.http.routers.websecure.tls.certresolver=letsencrypt
-        - <- `traefik.http.routers.websecure.tls.domains[0].main=${hostname}`
+        - <- `traefik.http.routers.websecure.tls.domains[0].main=${domain}`
         - traefik.http.routers.websecure.service=websecure
-
         - <- $force-https then(`traefik.http.middlewares.web-forcessl.redirectscheme.scheme=https`)
         - <- $force-https then(`traefik.http.middlewares.web-forcessl.redirectscheme.permanent=true`)
         - <- $force-https then(`traefik.http.middlewares.web-forcessl.redirectscheme.port=443`)
-
         - traefik.http.services.websecure.loadbalancer.server.port=4000
-
     traefik:
       image: traefik
       image-tag: v2.9.9
       paths:
-        - "/var/run/podman/podman.sock:/var/run/docker.sock:z"
+        - /var/run/podman/podman.sock:/var/run/docker.sock:z
         - <- `${monk-volume-path}/dokuwikiacme:/acmestore`
       ports:
         - 80:80
@@ -100,7 +86,6 @@ papercups:
           --accesslog=true \
           --accesslog.format=json \
           --log.format=json
-
   variables:
     db-host:
       value: <- connection-hostname("postgres")
@@ -109,14 +94,20 @@ papercups:
       value: <- connection-port("postgres")
       type: string
     postgres_password:
-      value: <- `${database-password}`
+      value: <- $database-password default("postgres")
       type: string
     db_username:
-      value: <- `${database-user}`
+      value: <- $database-user default("postgres")
       type: string
     db_name:
-      value: <- `${database-name}`
+      value: <- $database-name default("papercups")
       type: string
+    ip-address-public:
+      type: string
+      value: <- ip-address-public
+    domain:
+      type: string
+      value: <- $hostname default($ip-address-public)
     force-https:
       type: bool
       value: true
@@ -142,45 +133,19 @@ db:
       protocol: tcp
   variables:
     postgres_password:
-      value: <- `${database-password}`
+      env: POSTGRES_PASSWORD
+      value: <- $database-password default("postgres")
       type: string
     db_username:
-      value: <- `${database-user}`
+      env: POSTGRES_USER
+      value: <- $database-user default("postgres")
       type: string
     db_name:
-      value: <- `${database-name}`
+      env: POSTGRES_DB
+      value: <- $database-name default("papercups")
       type: string
   checks:
     readiness:
       code: exec("postgres", "pg_isready") "accepting connections" contains?
       period: 15
       initialDelay: 10
-
-stack:
-  defines: process-group
-
-  runnable-list:
-    - papercups/db
-    - papercups/papercups
-
-  metadata:
-    name: Papercups
-    description: Open-source live customer chat.
-    tags: self hosted, communication, messaging
-    website: https://papercups.io/
-    source: https://github.com/papercups-io/papercups
-    publisher: monk.io
-    icon: https://papercups.io/papercups-dark.svg
-  variables:
-    database-user:
-      value: postgres
-      type: string
-    database-password:
-      value: postgres
-      type: string
-    database-name:
-      value: papercups
-      type: string
-    hostname:
-      type: string
-      value: <- ip-address-public
